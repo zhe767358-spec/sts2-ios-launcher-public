@@ -12,6 +12,8 @@ public class CloudStoragePolicyTests
         "https://steamcloud-hk.storage.googleapis.com/a",
         "https://steamcloudquincy.blob.core.windows.net/a",
         "https://steamcloudlrstyo.blob.core.windows.net/a",
+        "https://steamcloud-sgp.oss-accelerate.aliyuncs.com/2868840/abc?Expires=1&OSSAccessKeyId=key&Signature=secret",
+        "https://steamcloud-hkg.oss-accelerate.aliyuncs.com/2868840/abc?Expires=1&OSSAccessKeyId=key&Signature=secret",
     ];
 
     [Theory]
@@ -44,6 +46,12 @@ public class CloudStoragePolicyTests
     [InlineData("https://steamcloudquincy.table.core.windows.net/a")]
     [InlineData("https://steamcloudquincy.blob.core.windows.net:8443/a")]
     [InlineData("https://steamcloudaccountnamewaytoolong.blob.core.windows.net/a")]
+    [InlineData("http://steamcloud-sgp.oss-accelerate.aliyuncs.com/a")]
+    [InlineData("https://steamcloud-sgp.oss-accelerate.aliyuncs.com:8443/a")]
+    [InlineData("https://evil.oss-accelerate.aliyuncs.com/a")]
+    [InlineData("https://steamcloud-sgp.evil.aliyuncs.com/a")]
+    [InlineData("https://x.steamcloud-sgp.oss-accelerate.aliyuncs.com/a")]
+    [InlineData("https://steamcloud-sgp.oss-accelerate.aliyuncs.com.attacker.test/a")]
     public void RefusesLookalikeStorage(string address) =>
         Assert.False(SteamNetworkPolicy.IsCloudStorage(new Uri(address)));
 }

@@ -26,10 +26,12 @@ public sealed class CloudDownloadClientTests : IDisposable
         Assert.Equal(0, transport.Calls);
     }
 
-    [Fact]
-    public async Task ReachesCloudStorage()
+    [Theory]
+    [InlineData(CloudFile)]
+    [InlineData("https://steamcloud-sgp.oss-accelerate.aliyuncs.com/2868840/abc?Expires=1&OSSAccessKeyId=key&Signature=secret")]
+    public async Task ReachesCloudStorage(string cloudFile)
     {
-        using var response = await _client.GetAsync(CloudFile);
+        using var response = await _client.GetAsync(cloudFile);
         Assert.Equal(1, _transport.Calls);
     }
 
