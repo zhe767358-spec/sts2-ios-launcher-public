@@ -93,6 +93,8 @@ public sealed class SteamConnection : ILobbyConnection, IDisposable
 
     public SteamClient Client => _client;
 
+    public ILogger Logger => _logger;
+
     public bool IsConnected => State == ConnectionState.Connected;
 
     public SteamApps Apps

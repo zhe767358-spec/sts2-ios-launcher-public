@@ -11,6 +11,7 @@ namespace STS2Mobile.Steam.Depot;
 /// </summary>
 public sealed class SteamDepot : IDepotChunkSource, IDisposable
 {
+    private const string Tag = "Steam/Depot";
     private const int MaxServers = 8;
     private readonly Client _cdn;
     private readonly uint _depotId;
@@ -36,8 +37,20 @@ public sealed class SteamDepot : IDepotChunkSource, IDisposable
             var keyResult = await connection.Apps.GetDepotDecryptionKey(depotId, appId).ToTask().WaitAsync(cancellationToken).ConfigureAwait(false);
             if (keyResult.Result != EResult.OK) throw new UnauthorizedAccessException("Steam refused the game's depot key: " + keyResult.Result);
             var content = connection.Content;
-            var servers = (await content.GetServersForSteamPipe().WaitAsync(cancellationToken).ConfigureAwait(false))
+            var offered = (await content.GetServersForSteamPipe().WaitAsync(cancellationToken).ConfigureAwait(false)).ToList();
+            foreach (var server in offered)
+            {
+                bool usable = IsUsable(server, appId);
+                string allowedApps = server.AllowedAppIds is { Length: > 0 }
+                    ? string.Join(",", server.AllowedAppIds)
+                    : "<any>";
+                connection.Logger.Info(Tag,
+                    $"Content server: protocol={server.Protocol}, host={server.Host}, port={server.Port}, proxy={server.UseAsProxy}, " +
+                    $"chinaOnly={server.SteamChinaOnly}, allowedApps={allowedApps}, usable={usable}");
+            }
+            var servers = offered
                 .Where(server => IsUsable(server, appId)).OrderBy(server => server.WeightedLoad).Take(MaxServers).ToList();
+            connection.Logger.Info(Tag, $"Content server summary: offered={offered.Count}, usable={servers.Count}, appId={appId}");
             if (servers.Count == 0) throw new InvalidOperationException("Steam offered no content server this app may use.");
             ulong code = await connection.Content.GetManifestRequestCode(depotId, appId, manifestId, branch).WaitAsync(cancellationToken).ConfigureAwait(false);
             if (code == 0) throw new UnauthorizedAccessException("Steam refused the game's file list.");
@@ -80,7 +93,8 @@ public sealed class SteamDepot : IDepotChunkSource, IDisposable
         IsUsable(server.Protocol == Server.ConnectionProtocol.HTTPS, server.Host, server.Port, server.UseAsProxy, server.SteamChinaOnly, server.AllowedAppIds, appId);
 
     public static bool IsUsable(bool https, string? host, int port, bool proxy, bool chinaOnly, uint[]? allowedApps, uint appId) =>
-        https && port == 443 && !proxy && !chinaOnly && SteamNetworkPolicy.IsAllowedHost(host)
+        // FORK-DIAGNOSTIC: permit Steam China content servers while retaining TLS, port, proxy, host, and app restrictions.
+        https && port == 443 && !proxy && SteamNetworkPolicy.IsAllowedHost(host)
         && (allowedApps is not { Length: > 0 } || allowedApps.Contains(appId));
 
     public void Dispose() => _cdn.Dispose();

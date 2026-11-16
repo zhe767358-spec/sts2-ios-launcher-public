@@ -217,7 +217,8 @@ public sealed class DepotDownloadTests : IDisposable
         Assert.False(SteamDepot.IsUsable(true, "steampipe.akamaized.net", 443, false, false, [], 7));
         Assert.False(SteamDepot.IsUsable(true, "cache1-tyo3.steamcontent.com", 8443, false, false, [], 7));
         Assert.False(SteamDepot.IsUsable(true, "cache1-tyo3.steamcontent.com", 443, true, false, [], 7));
-        Assert.False(SteamDepot.IsUsable(true, "cache1-tyo3.steamcontent.com", 443, false, true, [], 7));
+        // FORK-DIAGNOSTIC: Steam China content servers remain subject to every other network-policy check.
+        Assert.True(SteamDepot.IsUsable(true, "cache1-tyo3.steamcontent.com", 443, false, true, [], 7));
         Assert.False(SteamDepot.IsUsable(true, "cache1-tyo3.steamcontent.com", 443, false, false, [8], 7));
         Assert.True(SteamDepot.IsUsable(true, "cache1-tyo3.steamcontent.com", 443, false, false, [7, 8], 7));
     }
