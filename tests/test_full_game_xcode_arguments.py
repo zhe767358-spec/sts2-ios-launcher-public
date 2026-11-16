@@ -99,6 +99,12 @@ class NativeUnitTests(unittest.TestCase):
         for name in NATIVE_UNITS:
             self.assertTrue((native / name).is_file(), name)
 
+    def test_fractional_ios_screen_scale_is_rounded_before_godot_maps_touches(self):
+        native = Path(__file__).resolve().parents[1] / "src/STS2Mobile.FullGame/native/power_state.mm"
+        text = native.read_text(encoding="utf-8")
+        self.assertIn("return MAX(1.0, floor(scale * gRenderScale + 0.01));", text)
+        self.assertNotIn("return scale * gRenderScale;", text)
+
 
 def png(width: int, rows: list[bytes], color: int) -> bytes:
     """Encode rows of 8-bit pixels, filtering row n with PNG filter type n % 5 so every filter is exercised."""

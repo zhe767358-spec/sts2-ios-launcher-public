@@ -7,7 +7,8 @@
 // Render resolution: the engine sizes its drawing surface, maps touches and computes the safe area
 // from UIScreen.scale (Godot 4.5.1 drivers/apple_embedded and platform/ios). Reporting a smaller
 // scale to the app before the engine starts therefore makes it draw fewer pixels with every one of
-// those staying consistent, and iOS scales the picture up to the screen. The choice is read from
+// those staying consistent, as long as the scale is a whole number (see STS2ScreenScale), and iOS
+// scales the picture up to the screen. The choice is read from
 // Documents/phone-graphics.json (written by PhoneGraphicsSettings.cs, key "renderScale") once,
 // before main, so a change takes effect at the next launch. Without the file nothing is changed.
 #import <UIKit/UIKit.h>
@@ -34,9 +35,12 @@ static CGFloat STS2ReadRenderScale(void) {
 	return (scale >= 0.5 && scale < 1.0) ? scale : 1.0;
 }
 
+// Godot truncates the drawing size to an integer scale while mapping touches with the reported scale.
+// On a 2x iPad, 67% produced 1.33: drawing used 1x but touches landed a third too far down and right.
+// Rounding down keeps drawing and touch coordinates on the same whole-number scale.
 static CGFloat STS2ScreenScale(id self, SEL _cmd) {
 	CGFloat scale = ((CGFloat (*)(id, SEL))gScreenScale)(self, _cmd);
-	return scale * gRenderScale;
+	return MAX(1.0, floor(scale * gRenderScale + 0.01));
 }
 
 extern "C" __attribute__((visibility("default"))) int sts2_power_thermal_state(void) {
