@@ -93,9 +93,11 @@ public sealed class SteamDepot : IDepotChunkSource, IDisposable
         IsUsable(server.Protocol == Server.ConnectionProtocol.HTTPS, server.Host, server.Port, server.UseAsProxy, server.SteamChinaOnly, server.AllowedAppIds, appId);
 
     public static bool IsUsable(bool https, string? host, int port, bool proxy, bool chinaOnly, uint[]? allowedApps, uint appId) =>
-        // FORK-DIAGNOSTIC: permit Steam China content servers while retaining TLS, port, proxy, host, and app restrictions.
-        https && port == 443 && !proxy && SteamNetworkPolicy.IsAllowedHost(host)
-        && (allowedApps is not { Length: > 0 } || allowedApps.Contains(appId));
+        // FORK: Steam's China content servers are reached over plain HTTP on port 80, as Steam offers them there;
+        // Steam's own hosts still require HTTPS on port 443, and the proxy, host and app restrictions still apply.
+        !proxy && (allowedApps is not { Length: > 0 } || allowedApps.Contains(appId))
+        && ((https && port == 443 && SteamNetworkPolicy.IsAllowedHost(host))
+            || (SteamNetworkPolicy.IsChinaCdnHost(host) && ((https && port == 443) || (!https && port == 80))));
 
     public void Dispose() => _cdn.Dispose();
 }

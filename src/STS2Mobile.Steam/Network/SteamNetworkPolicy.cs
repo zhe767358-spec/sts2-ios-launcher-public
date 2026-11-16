@@ -5,7 +5,7 @@ namespace STS2Mobile.Steam.Network;
 
 /// <summary>
 /// Allows Steam's own hosts over HTTPS or WSS on port 443 and nothing else, apart from
-/// <see cref="IsCloudStorage"/>.
+/// <see cref="IsCloudStorage"/> and the China content servers below.
 /// </summary>
 public static class SteamNetworkPolicy
 {
@@ -18,6 +18,19 @@ public static class SteamNetworkPolicy
         // Valve's connection-manager hosts. Steam's own directory (api.steampowered.com) returns
         // only names under this domain, so no sign-in, ownership check or cloud call works without it.
         "steamserver.net"
+    ];
+
+    // FORK: the content servers Steam assigns to a client in China. Steam offers them over plain
+    // HTTP on port 80, under CDN roots that are not Steam's own hosts; the game download cannot
+    // start without them. The exception covers only these three roots, only HTTP on port 80 or
+    // HTTPS on port 443, and the download layer still re-fetches any chunk whose hash does not
+    // match the manifest. Observed from GetServersForSteamPipe on 2026-11-16:
+    // xz.pphimalayanrt.com, st.dl.eccdnx.com, dl.steam.clngaa.com.
+    private static readonly string[] ChinaCdnRoots =
+    [
+        "pphimalayanrt.com",
+        "eccdnx.com",
+        "clngaa.com"
     ];
 
     // Steam Cloud keeps file contents with four storage providers and gives the signed-in client a
@@ -43,7 +56,12 @@ public static class SteamNetworkPolicy
         new(@"^steamcloud-[a-z0-9]+(?:-[a-z0-9]+)*\.oss-accelerate\.aliyuncs\.com\z", RegexOptions.CultureInvariant)
     ];
 
-    public static bool IsAllowedHost(string? host)
+    public static bool IsAllowedHost(string? host) => HostMatchesRoots(host, Roots);
+
+    /// <summary>A host under one of Steam's China content-server roots. See <see cref="ChinaCdnRoots"/>.</summary>
+    public static bool IsChinaCdnHost(string? host) => HostMatchesRoots(host, ChinaCdnRoots);
+
+    private static bool HostMatchesRoots(string? host, string[] roots)
     {
         if (string.IsNullOrEmpty(host) || host.Length > 253 ||
             host.Any(c => !(char.IsAsciiLetterOrDigit(c) || c is '.' or '-')) ||
@@ -55,16 +73,20 @@ public static class SteamNetworkPolicy
             label.StartsWith('-') || label.EndsWith('-')))
             return false;
 
-        return Roots.Any(root => normalized == root ||
+        return roots.Any(root => normalized == root ||
             normalized.EndsWith("." + root, StringComparison.Ordinal));
     }
 
     public static bool IsAllowed(Uri? uri)
     {
-        return uri is { IsAbsoluteUri: true } &&
-            (uri.Scheme == "https" || uri.Scheme == "wss") &&
-            uri.Port == 443 && string.IsNullOrEmpty(uri.UserInfo) &&
-            string.IsNullOrEmpty(uri.Fragment) && IsAllowedHost(uri.IdnHost);
+        if (uri is not { IsAbsoluteUri: true } ||
+            !string.IsNullOrEmpty(uri.UserInfo) || !string.IsNullOrEmpty(uri.Fragment))
+            return false;
+        if ((uri.Scheme == "https" || uri.Scheme == "wss") && uri.Port == 443 && IsAllowedHost(uri.IdnHost))
+            return true;
+        // FORK: the China content servers, over plain HTTP on port 80 as Steam offers them, or HTTPS on 443.
+        return IsChinaCdnHost(uri.IdnHost) &&
+            ((uri.Scheme == "http" && uri.Port == 80) || (uri.Scheme == "https" && uri.Port == 443));
     }
 
     /// <summary>A Steam Cloud storage address, over HTTPS on port 443. See <see cref="CloudStorageHosts"/> and <see cref="CloudStorageAccess"/>.</summary>
