@@ -20,10 +20,11 @@ public static class SteamNetworkPolicy
         "steamserver.net"
     ];
 
-    // Steam Cloud keeps file contents with three storage providers and gives the signed-in client a
+    // Steam Cloud keeps file contents with four storage providers and gives the signed-in client a
     // signed address for each file, choosing the provider per file. Examples:
     // steamcloud-us-west3.s3.dualstack.us-west-2.amazonaws.com, steamcloud-tokyo / -us-west1 / -hk
-    // .storage.googleapis.com, steamcloudquincy / steamcloudlrstyo.blob.core.windows.net.
+    // .storage.googleapis.com, steamcloudquincy / steamcloudlrstyo.blob.core.windows.net,
+    // steamcloud-sgp / -hkg .oss-accelerate.aliyuncs.com (Alibaba Cloud OSS, used in China).
     // This exception permits moving the signed-in player's own cloud saves only. It is not part of
     // IsAllowed: only two clients accept it (see CloudStorageAccess). The one made by
     // SteamHttpClient.CreateForCloudDownloads may GET from these hosts; the one made by
@@ -37,7 +38,9 @@ public static class SteamNetworkPolicy
         // Google Cloud Storage
         new(@"^steamcloud-[a-z0-9]+(?:-[a-z0-9]+)*\.storage\.googleapis\.com\z", RegexOptions.CultureInvariant),
         // Microsoft Azure Blob Storage (account names are at most 24 lowercase letters and digits)
-        new(@"^steamcloud[a-z0-9]{1,14}\.blob\.core\.windows\.net\z", RegexOptions.CultureInvariant)
+        new(@"^steamcloud[a-z0-9]{1,14}\.blob\.core\.windows\.net\z", RegexOptions.CultureInvariant),
+        // Alibaba Cloud OSS accelerate endpoints (bucket names follow the same steamcloud-<name> form)
+        new(@"^steamcloud-[a-z0-9]+(?:-[a-z0-9]+)*\.oss-accelerate\.aliyuncs\.com\z", RegexOptions.CultureInvariant)
     ];
 
     public static bool IsAllowedHost(string? host)
