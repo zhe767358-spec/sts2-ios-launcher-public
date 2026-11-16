@@ -221,6 +221,16 @@ public sealed class DepotDownloadTests : IDisposable
         Assert.True(SteamDepot.IsUsable(true, "cache1-tyo3.steamcontent.com", 443, false, true, [], 7));
         Assert.False(SteamDepot.IsUsable(true, "cache1-tyo3.steamcontent.com", 443, false, false, [8], 7));
         Assert.True(SteamDepot.IsUsable(true, "cache1-tyo3.steamcontent.com", 443, false, false, [7, 8], 7));
+        // FORK: the content servers Steam assigns in China, over plain HTTP on port 80, as Steam offers them.
+        Assert.True(SteamDepot.IsUsable(false, "xz.pphimalayanrt.com", 80, false, false, [], 7));
+        Assert.True(SteamDepot.IsUsable(false, "st.dl.eccdnx.com", 80, false, false, null, 7));
+        Assert.True(SteamDepot.IsUsable(false, "dl.steam.clngaa.com", 80, false, false, [7], 7));
+        Assert.True(SteamDepot.IsUsable(true, "xz.pphimalayanrt.com", 443, false, false, [], 7));
+        Assert.False(SteamDepot.IsUsable(false, "xz.pphimalayanrt.com", 8080, false, false, [], 7));
+        Assert.False(SteamDepot.IsUsable(false, "xz.pphimalayanrt.com", 80, true, false, [], 7));
+        Assert.False(SteamDepot.IsUsable(false, "xz.pphimalayanrt.com", 80, false, false, [8], 7));
+        Assert.False(SteamDepot.IsUsable(false, "xz.pphimalayanrt.com.attacker.test", 80, false, false, [], 7));
+        Assert.False(SteamDepot.IsUsable(false, "fakepphimalayanrt.com", 80, false, false, [], 7));
     }
 }
 

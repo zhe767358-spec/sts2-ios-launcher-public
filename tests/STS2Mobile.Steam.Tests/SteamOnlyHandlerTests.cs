@@ -29,6 +29,20 @@ public sealed class SteamOnlyHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task ChinaContentServerRequestReachesTransport()
+    {
+        using var response = await _client.GetAsync("http://xz.pphimalayanrt.com/depot/1");
+        Assert.Equal(1, _transport.Calls);
+    }
+
+    [Fact]
+    public async Task PlainHttpToOtherHostsIsRefused()
+    {
+        await Assert.ThrowsAsync<NetworkPolicyException>(() => _client.GetAsync("http://api.github.com/"));
+        Assert.Equal(0, _transport.Calls);
+    }
+
+    [Fact]
     public async Task HostHeaderOverrideIsRefused()
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, "https://api.steampowered.com/");

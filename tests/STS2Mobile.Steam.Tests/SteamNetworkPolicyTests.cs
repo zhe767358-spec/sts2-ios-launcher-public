@@ -16,6 +16,14 @@ public class SteamNetworkPolicyTests
     public void AllowsSteamEndpoints(string address) => Assert.True(SteamNetworkPolicy.IsAllowed(new Uri(address)));
 
     [Theory]
+    [InlineData("http://xz.pphimalayanrt.com/depot/2868842/chunk")]
+    [InlineData("http://st.dl.eccdnx.com/depot/1")]
+    [InlineData("http://dl.steam.clngaa.com/depot/1")]
+    [InlineData("https://xz.pphimalayanrt.com:443/depot/1")]
+    [InlineData("http://XZ.PPHIMALAYANRT.COM/depot/1")]
+    public void AllowsChinaContentServers(string address) => Assert.True(SteamNetworkPolicy.IsAllowed(new Uri(address)));
+
+    [Theory]
     [InlineData("https://api.github.com/")]
     [InlineData("https://sentry.io/")]
     [InlineData("https://megacrit.com/")]
@@ -38,6 +46,13 @@ public class SteamNetworkPolicyTests
     [InlineData("https://steamcontent.com..attacker.test/")]
     [InlineData("file:///steamcontent.com")]
     [InlineData("ftp://steamcontent.com/")]
+    [InlineData("http://xz.pphimalayanrt.com:8080/")]
+    [InlineData("https://xz.pphimalayanrt.com:8443/")]
+    [InlineData("http://xz.pphimalayanrt.com.attacker.test/")]
+    [InlineData("http://fakepphimalayanrt.com/")]
+    [InlineData("http://xz.pphimalayanrt.com@attacker.test/")]
+    [InlineData("wss://xz.pphimalayanrt.com/cmsocket/")]
+    [InlineData("http://pphimalayanrt.com./")]
     public void RefusesOtherDestinations(string address) =>
         Assert.False(Uri.TryCreate(address, UriKind.Absolute, out var uri) && SteamNetworkPolicy.IsAllowed(uri));
 
@@ -62,6 +77,11 @@ public class SteamNetworkPolicyTests
     public void ThirdPartyRefusalOmitsCredentialsPathQueryAndFragment() =>
         Assert.Equal("scheme=https host=storage.example.net port=8443",
             SteamNetworkPolicy.DescribeRefusal(new Uri("https://user:pw@storage.example.net:8443/a/b?sig=secret#f")));
+
+    [Fact]
+    public void RefusedChinaContentServerRefusalNamesSchemeHostAndPortOnly() =>
+        Assert.Equal("scheme=http host=xz.pphimalayanrt.com port=8080",
+            SteamNetworkPolicy.DescribeRefusal(new Uri("http://xz.pphimalayanrt.com:8080/depot/1?token=secret")));
 
     [Fact]
     public void UnusableDestinationIsDescribedWithoutItsText()
